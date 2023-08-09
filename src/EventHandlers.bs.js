@@ -115,14 +115,57 @@ Curry._1(Handlers.ERC1155Contract.TransferBatch.loader, (function ($$event, cont
         Curry._1(context.nftcollection.nftCollectionUpdatedLoad, Ethers.ethAddressToString($$event.srcAddress));
         console.log("event.params.ids");
         console.log($$event.params.ids);
-        var ids = $$event.params.ids;
-        if (ids.TAG === /* Ok */0) {
-          Belt_Array.forEach(ids._0, (function (id) {
-                  Curry._2(context.token.existingTransferredTokenLoad, Ethers.ethAddressToString($$event.srcAddress) + id.toString(), {});
-                }));
-          return ;
-        }
-        console.log("error: ", ids._0);
+        Belt_Array.forEach($$event.params.ids, (function (id) {
+                Curry._2(context.token.existingTransferredTokenLoad, Ethers.ethAddressToString($$event.srcAddress) + id.toString(), {});
+              }));
+      }));
+
+Curry._1(Handlers.ERC1155Contract.TransferBatch.handler, (function ($$event, context) {
+        console.log("in handler event.params.ids");
+        console.log($$event.params.ids);
+        Belt_Array.mapWithIndex($$event.params.ids, (function (index, id) {
+                var token_id = "" + Ethers.ethAddressToString($$event.srcAddress) + "-" + id.toString() + "";
+                var token_collection = Ethers.ethAddressToString($$event.srcAddress);
+                var token_owner = Ethers.ethAddressToString($$event.params.to);
+                var token_value = Belt_Option.getWithDefault(Belt_Array.get($$event.params[4], index), BigInt(1));
+                var token = {
+                  id: token_id,
+                  tokenId: id,
+                  collection: token_collection,
+                  owner: token_owner,
+                  value: token_value
+                };
+                var nftCollectionUpdated = Curry._1(context.nftcollection.nftCollectionUpdated, undefined);
+                if (nftCollectionUpdated !== undefined) {
+                  var optExistingToken = Curry._1(context.token.existingTransferredToken, undefined);
+                  if (Belt_Option.isNone(optExistingToken)) {
+                    var currentSupply = nftCollectionUpdated.currentSupply + 1 | 0;
+                    var newrecord = Caml_obj.obj_dup(nftCollectionUpdated);
+                    newrecord.currentSupply = currentSupply;
+                    Curry._1(context.nftcollection.set, newrecord);
+                  }
+                  
+                } else {
+                  Curry._1(context.nftcollection.set, {
+                        id: Ethers.ethAddressToString($$event.srcAddress),
+                        contractAddress: Ethers.ethAddressToString($$event.srcAddress),
+                        currentSupply: 1
+                      });
+                }
+                if ($$event.params.from !== zeroAddress) {
+                  Curry._1(context.user.set, {
+                        id: Ethers.ethAddressToString($$event.params.from)
+                      });
+                }
+                if ($$event.params.to === zeroAddress) {
+                  return Curry._1(context.token.delete, token_id);
+                }
+                var userTo = {
+                  id: Ethers.ethAddressToString($$event.params.to)
+                };
+                Curry._1(context.user.set, userTo);
+                Curry._1(context.token.set, token);
+              }));
       }));
 
 exports.zeroAddress = zeroAddress;
