@@ -13,7 +13,7 @@ networks:
         interval_ceiling: 5000
         backoff_millis: 5000
         query_timeout_millis: 20000
-    start_block: 0
+    start_block: 31086 # todo: revert to 0
     contracts:
       - name: ERC721
         address:
