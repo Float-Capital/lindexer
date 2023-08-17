@@ -4,7 +4,6 @@
 var Curry = require("rescript/lib/js/curry.js");
 var Ethers = require("generated/src/bindings/Ethers.bs.js");
 var Ethers$1 = require("ethers");
-var Caml_obj = require("rescript/lib/js/caml_obj.js");
 var Handlers = require("generated/src/Handlers.bs.js");
 var Belt_Array = require("rescript/lib/js/belt_Array.js");
 var Belt_Option = require("rescript/lib/js/belt_Option.js");
@@ -27,22 +26,31 @@ Curry._1(Handlers.ERC721Contract.Transfer.handler, (function ($$event, context) 
           tokenId: token_tokenId,
           collection: token_collection,
           owner: token_owner,
-          value: token_value
+          value: token_value,
+          standard: "ERC721"
         };
         var nftCollectionUpdated = Curry._1(context.nftcollection.nftCollectionUpdated, undefined);
         if (nftCollectionUpdated !== undefined) {
           var optExistingToken = Curry._1(context.token.existingTransferredToken, undefined);
           if (Belt_Option.isNone(optExistingToken)) {
             var currentSupply = nftCollectionUpdated.currentSupply + 1 | 0;
-            var newrecord = Caml_obj.obj_dup(nftCollectionUpdated);
-            newrecord.currentSupply = currentSupply;
-            Curry._1(context.nftcollection.set, newrecord);
+            Curry._1(context.nftcollection.set, {
+                  id: nftCollectionUpdated.id,
+                  contractAddress: nftCollectionUpdated.contractAddress,
+                  name: nftCollectionUpdated.name,
+                  symbol: nftCollectionUpdated.symbol,
+                  maxSupply: nftCollectionUpdated.maxSupply,
+                  currentSupply: currentSupply
+                });
           }
           
         } else {
           Curry._1(context.nftcollection.set, {
                 id: Ethers.ethAddressToString($$event.srcAddress),
                 contractAddress: Ethers.ethAddressToString($$event.srcAddress),
+                name: undefined,
+                symbol: undefined,
+                maxSupply: undefined,
                 currentSupply: 1
               });
         }
@@ -77,22 +85,31 @@ Curry._1(Handlers.ERC1155Contract.TransferSingle.handler, (function ($$event, co
           tokenId: token_tokenId,
           collection: token_collection,
           owner: token_owner,
-          value: token_value
+          value: token_value,
+          standard: "ERC1155"
         };
         var nftCollectionUpdated = Curry._1(context.nftcollection.nftCollectionUpdated, undefined);
         if (nftCollectionUpdated !== undefined) {
           var optExistingToken = Curry._1(context.token.existingTransferredToken, undefined);
           if (Belt_Option.isNone(optExistingToken)) {
             var currentSupply = nftCollectionUpdated.currentSupply + 1 | 0;
-            var newrecord = Caml_obj.obj_dup(nftCollectionUpdated);
-            newrecord.currentSupply = currentSupply;
-            Curry._1(context.nftcollection.set, newrecord);
+            Curry._1(context.nftcollection.set, {
+                  id: nftCollectionUpdated.id,
+                  contractAddress: nftCollectionUpdated.contractAddress,
+                  name: nftCollectionUpdated.name,
+                  symbol: nftCollectionUpdated.symbol,
+                  maxSupply: nftCollectionUpdated.maxSupply,
+                  currentSupply: currentSupply
+                });
           }
           
         } else {
           Curry._1(context.nftcollection.set, {
                 id: Ethers.ethAddressToString($$event.srcAddress),
                 contractAddress: Ethers.ethAddressToString($$event.srcAddress),
+                name: undefined,
+                symbol: undefined,
+                maxSupply: undefined,
                 currentSupply: 1
               });
         }
@@ -113,42 +130,47 @@ Curry._1(Handlers.ERC1155Contract.TransferSingle.handler, (function ($$event, co
 
 Curry._1(Handlers.ERC1155Contract.TransferBatch.loader, (function ($$event, context) {
         Curry._1(context.nftcollection.nftCollectionUpdatedLoad, Ethers.ethAddressToString($$event.srcAddress));
-        console.log("event.params.ids");
-        console.log($$event.params.ids);
         Belt_Array.forEach($$event.params.ids, (function (id) {
                 Curry._2(context.token.existingTransferredTokenLoad, Ethers.ethAddressToString($$event.srcAddress) + id.toString(), {});
               }));
       }));
 
 Curry._1(Handlers.ERC1155Contract.TransferBatch.handler, (function ($$event, context) {
-        console.log("in handler event.params.ids");
-        console.log($$event.params.ids);
         Belt_Array.mapWithIndex($$event.params.ids, (function (index, id) {
                 var token_id = "" + Ethers.ethAddressToString($$event.srcAddress) + "-" + id.toString() + "";
                 var token_collection = Ethers.ethAddressToString($$event.srcAddress);
                 var token_owner = Ethers.ethAddressToString($$event.params.to);
-                var token_value = Belt_Option.getWithDefault(Belt_Array.get($$event.params[4], index), BigInt(1));
+                var token_value = Belt_Option.getWithDefault(Belt_Array.get($$event.params.values, index), BigInt(1));
                 var token = {
                   id: token_id,
                   tokenId: id,
                   collection: token_collection,
                   owner: token_owner,
-                  value: token_value
+                  value: token_value,
+                  standard: "ERC1155"
                 };
                 var nftCollectionUpdated = Curry._1(context.nftcollection.nftCollectionUpdated, undefined);
                 if (nftCollectionUpdated !== undefined) {
                   var optExistingToken = Curry._1(context.token.existingTransferredToken, undefined);
                   if (Belt_Option.isNone(optExistingToken)) {
                     var currentSupply = nftCollectionUpdated.currentSupply + 1 | 0;
-                    var newrecord = Caml_obj.obj_dup(nftCollectionUpdated);
-                    newrecord.currentSupply = currentSupply;
-                    Curry._1(context.nftcollection.set, newrecord);
+                    Curry._1(context.nftcollection.set, {
+                          id: nftCollectionUpdated.id,
+                          contractAddress: nftCollectionUpdated.contractAddress,
+                          name: nftCollectionUpdated.name,
+                          symbol: nftCollectionUpdated.symbol,
+                          maxSupply: nftCollectionUpdated.maxSupply,
+                          currentSupply: currentSupply
+                        });
                   }
                   
                 } else {
                   Curry._1(context.nftcollection.set, {
                         id: Ethers.ethAddressToString($$event.srcAddress),
                         contractAddress: Ethers.ethAddressToString($$event.srcAddress),
+                        name: undefined,
+                        symbol: undefined,
+                        maxSupply: undefined,
                         currentSupply: 1
                       });
                 }

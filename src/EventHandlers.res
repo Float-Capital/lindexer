@@ -17,6 +17,7 @@ Handlers.ERC721Contract.Transfer.handler((~event, ~context) => {
     collection: event.srcAddress->Ethers.ethAddressToString,
     owner: event.params.to->Ethers.ethAddressToString,
     value: 1->Ethers.BigInt.fromInt,
+    standard: "ERC721",
   }
 
   switch context.nftcollection.nftCollectionUpdated() {
@@ -42,6 +43,9 @@ Handlers.ERC721Contract.Transfer.handler((~event, ~context) => {
       contractAddress: event.srcAddress->Ethers.ethAddressToString,
       //First NFT is being created so current suplly is 1
       currentSupply: 1,
+      name: None,
+      symbol: None,
+      maxSupply: None,
     }
 
     context.nftcollection.set(newNftCollection)
@@ -81,6 +85,7 @@ Handlers.ERC1155Contract.TransferSingle.handler((~event, ~context) => {
     collection: event.srcAddress->Ethers.ethAddressToString,
     owner: event.params.to->Ethers.ethAddressToString,
     value: event.params.value,
+    standard: "ERC1155",
   }
 
   switch context.nftcollection.nftCollectionUpdated() {
@@ -106,6 +111,9 @@ Handlers.ERC1155Contract.TransferSingle.handler((~event, ~context) => {
       contractAddress: event.srcAddress->Ethers.ethAddressToString,
       //First NFT is being created so current suplly is 1
       currentSupply: 1,
+      name: None,
+      symbol: None,
+      maxSupply: None,
     }
 
     context.nftcollection.set(newNftCollection)
@@ -133,24 +141,25 @@ Handlers.ERC1155Contract.TransferSingle.handler((~event, ~context) => {
 
 Handlers.ERC1155Contract.TransferBatch.loader((~event, ~context) => {
   context.nftcollection.nftCollectionUpdatedLoad(event.srcAddress->Ethers.ethAddressToString)
-      event.params.ids->Belt.Array.forEach(id => {
-        context.token.existingTransferredTokenLoad(
-          event.srcAddress->Ethers.ethAddressToString ++ id->Ethers.BigInt.toString,
-          ~loaders={},
-        )
-      })
+  event.params.ids->Belt.Array.forEach(id => {
+    context.token.existingTransferredTokenLoad(
+      event.srcAddress->Ethers.ethAddressToString ++ id->Ethers.BigInt.toString,
+      ~loaders={},
+    )
+  })
 })
 
 Handlers.ERC1155Contract.TransferBatch.handler((~event, ~context) => {
-  Js.log("in handler event.params.ids")
-  Js.log(event.params.ids)
   let _ = event.params.ids->Belt.Array.mapWithIndex((index, id) => {
     let token = {
       id: `${event.srcAddress->Ethers.ethAddressToString}-${id->Ethers.BigInt.toString}`,
       tokenId: id,
       collection: event.srcAddress->Ethers.ethAddressToString,
       owner: event.params.to->Ethers.ethAddressToString,
-      value: event.params.values->Belt.Array.get(index)->Belt.Option.getWithDefault(1->Ethers.BigInt.fromInt),
+      value: event.params.values
+      ->Belt.Array.get(index)
+      ->Belt.Option.getWithDefault(1->Ethers.BigInt.fromInt),
+      standard: "ERC1155",
     }
 
     switch context.nftcollection.nftCollectionUpdated() {
@@ -176,6 +185,9 @@ Handlers.ERC1155Contract.TransferBatch.handler((~event, ~context) => {
         contractAddress: event.srcAddress->Ethers.ethAddressToString,
         //First NFT is being created so current suplly is 1
         currentSupply: 1,
+        name: None,
+        symbol: None,
+        maxSupply: None,
       }
 
       context.nftcollection.set(newNftCollection)
