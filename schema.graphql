@@ -20,6 +20,7 @@ type Token @entity {
   owner: User!
   value: BigInt! # This is mostly relevant to ERC1155 tokens where each token has a value or 'number'
   metadata: Metadata @derivedFrom(field: "token_id")
+  standard: String!
 }
 
 type Metadata @entity {
