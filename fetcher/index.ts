@@ -4,10 +4,10 @@ import { config } from "dotenv";
 import pgPromise from "pg-promise";
 import { readFileSync } from "fs";
 import { parse } from "yaml";
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const cacheDir = path.join(__dirname, 'metadata-cache');
+const cacheDir = path.join(__dirname, "metadata-cache");
 if (!fs.existsSync(cacheDir)) {
   fs.mkdirSync(cacheDir);
 }
@@ -15,7 +15,7 @@ if (!fs.existsSync(cacheDir)) {
 // import * as IPFS from 'ipfs-core';
 
 // Node that we use as a backup
-let ipfsNode
+let ipfsNode;
 const ipfsProviders = [
   "gateway.pinata.cloud",
   "cloudflare-ipfs.com",
@@ -43,16 +43,15 @@ const ipfsProviders = [
   // "ipfs.scalaproject.io",
   // "dweb.eu.org",
   // "nftstorage.link",
-]
-
+];
 
 config();
 
 const provider = new ethers.JsonRpcProvider(
   process.env.RPC_ENDPOINT ||
-  `https://linea-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
+    `https://linea-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
 );
-console.log("rpc", process.env.RPC_ENDPOINT)
+console.log("rpc", process.env.RPC_ENDPOINT);
 // const provider = new ethers.JsonRpcProvider(
 //   `https://linea-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
 // );
@@ -60,7 +59,7 @@ console.log("rpc", process.env.RPC_ENDPOINT)
 // Database setup
 const DATABASE_URI =
   process.env.DATABASE_URI ||
-  "postgresql://postgres:testing@localhost:5432/envio-dev";
+  "postgresql://postgres:testing@https://lindexer.envio.work:5432/envio-dev";
 const pgp = pgPromise();
 const db = pgp(DATABASE_URI);
 
@@ -120,13 +119,14 @@ const runCheckCollections = async () => {
     WHERE "name" IS NULL AND "symbol" IS NULL;
 `;
 
-  const nftDataList = await db.any(sql)
-    .then(data => {
-      return data
+  const nftDataList = await db
+    .any(sql)
+    .then((data) => {
+      return data;
     })
-    .catch(error => {
-      console.log("error getting data", error)
-      return []
+    .catch((error) => {
+      console.log("error getting data", error);
+      return [];
     });
 
   // Fetch data and update nftData with it, then update the database.
@@ -138,68 +138,99 @@ const runCheckCollections = async () => {
     .catch((error) => {
       console.error("Error updating data", error);
     });
-}
+};
 
-
-
-async function fetchNFTMetadata(
+async function fetchERC1155NFTMetadata(
   contractAddress: string,
   token_id: string
 ): Promise<any> {
-  console.log(`loading token ${contractAddress} - ${token_id}`)
+  console.log(`loading token ${contractAddress} - ${token_id}`);
   const contract = new ethers.Contract(
     contractAddress,
-    ["function tokenURI(uint256 token_id) external view returns (string)"],
+    ["function uri(uint256 tokenId) public view returns (string memory)"],
     provider
   );
 
-  let tokenURI = await contract.tokenURI(token_id);
+  // let tokenURI = await contract.uri(1);
+  let tokenURI = await contract.uri(token_id);
 
-  let dataReturned
+  let dataReturned;
   if (tokenURI.startsWith("ipfs://")) {
     let fileName = tokenURI.replace("ipfs://", "").replace("/", "-"); // replace with the preferred file extension
     let filePath = path.join(cacheDir, fileName);
 
+    console.log("here A");
+
     let bucket = parseInt(token_id) % ipfsProviders.length;
     if (fs.existsSync(filePath)) {
+      console.log("here b");
       // If file exists, load it and log message
-      dataReturned = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      dataReturned = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       // console.log('Data loaded from cache:', filePath);
     } else {
-      const { data } = await axios.get(tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`))
-        .catch(e => {
-          console.log("Errored with", ipfsProviders[bucket], "trying next")
-          bucket = (bucket + 1) % ipfsProviders.length
-          return axios.get(tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`))
+      console.log("here c");
+      const { data } = await axios
+        .get(
+          tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`)
+        )
+        .catch((e) => {
+          console.log("here c");
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          bucket = (bucket + 1) % ipfsProviders.length;
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
         })
-        .catch(e => {
-          bucket = (bucket + 1) % ipfsProviders.length
-          console.log("Errored with", ipfsProviders[bucket], "trying next")
-          return axios.get(tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`))
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
         })
-        .catch(e => {
-          bucket = (bucket + 1) % ipfsProviders.length
-          console.log("Errored with", ipfsProviders[bucket], "trying next")
-          return axios.get(tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`))
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
         })
-        .catch(e => {
-          bucket = (bucket + 1) % ipfsProviders.length
-          console.log("Errored with", ipfsProviders[bucket], "trying next")
-          return axios.get(tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`))
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
         })
-        .catch(e => {
-          bucket = (bucket + 1) % ipfsProviders.length
-          console.log("Errored with", ipfsProviders[bucket], "trying next")
-          return axios.get(tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`))
-        })
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
+        });
       // console.log(`data fetched with https://${ipfsProviders[bucket]}/ipfs/`, data)
-      console.log(`data fetched with https://${ipfsProviders[bucket]}/ipfs/`)
+      console.log(`data fetched with https://${ipfsProviders[bucket]}/ipfs/`);
 
       fs.writeFileSync(filePath, JSON.stringify(data));
 
-      dataReturned = data
+      dataReturned = data;
     }
-
   } else if (tokenURI.startsWith("https://")) {
     // console.log("unknown metadata <NOT IPFS>", tokenURI)
 
@@ -209,22 +240,141 @@ async function fetchNFTMetadata(
     let bucket = parseInt(token_id) % ipfsProviders.length;
     if (fs.existsSync(filePath)) {
       // If file exists, load it and log message
-      dataReturned = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      console.log('Data loaded from cache:', filePath);
+      dataReturned = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      console.log("Data loaded from cache:", filePath);
     } else {
-      const { data } = await axios.get(tokenURI)
+      const { data } = await axios.get(tokenURI);
 
       fs.writeFileSync(filePath, JSON.stringify(data));
 
-      dataReturned = data
+      dataReturned = data;
     }
   }
 
+  if (dataReturned?.image.startsWith("ipfs://")) {
+    dataReturned.image = dataReturned.image.replace(
+      "ipfs://",
+      "https://ipfs.io/ipfs/"
+    );
+  } else {
+    console.log("unknown image metadata", tokenURI);
+  }
+
+  return dataReturned;
+}
+
+async function fetchNFTMetadata(
+  contractAddress: string,
+  token_id: string
+): Promise<any> {
+  console.log(`loading token ${contractAddress} - ${token_id}`);
+  const contract = new ethers.Contract(
+    contractAddress,
+    ["function tokenURI(uint256 token_id) external view returns (string)"],
+    provider
+  );
+
+  let tokenURI = await contract.tokenURI(token_id);
+
+  let dataReturned;
+  if (tokenURI.startsWith("ipfs://")) {
+    let fileName = tokenURI.replace("ipfs://", "").replace("/", "-"); // replace with the preferred file extension
+    let filePath = path.join(cacheDir, fileName);
+
+    let bucket = parseInt(token_id) % ipfsProviders.length;
+    if (fs.existsSync(filePath)) {
+      // If file exists, load it and log message
+      dataReturned = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      // console.log('Data loaded from cache:', filePath);
+    } else {
+      const { data } = await axios
+        .get(
+          tokenURI.replace("ipfs://", `https://${ipfsProviders[bucket]}/ipfs/`)
+        )
+        .catch((e) => {
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          bucket = (bucket + 1) % ipfsProviders.length;
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
+        })
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
+        })
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
+        })
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
+        })
+        .catch((e) => {
+          bucket = (bucket + 1) % ipfsProviders.length;
+          console.log("Errored with", ipfsProviders[bucket], "trying next");
+          return axios.get(
+            tokenURI.replace(
+              "ipfs://",
+              `https://${ipfsProviders[bucket]}/ipfs/`
+            )
+          );
+        });
+      // console.log(`data fetched with https://${ipfsProviders[bucket]}/ipfs/`, data)
+      console.log(`data fetched with https://${ipfsProviders[bucket]}/ipfs/`);
+
+      fs.writeFileSync(filePath, JSON.stringify(data));
+
+      dataReturned = data;
+    }
+  } else if (tokenURI.startsWith("https://")) {
+    // console.log("unknown metadata <NOT IPFS>", tokenURI)
+
+    let fileName = tokenURI.replace("https://", "").replaceAll("/", "-"); // replace with the preferred file extension
+    let filePath = path.join(cacheDir, fileName);
+
+    let bucket = parseInt(token_id) % ipfsProviders.length;
+    if (fs.existsSync(filePath)) {
+      // If file exists, load it and log message
+      dataReturned = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      console.log("Data loaded from cache:", filePath);
+    } else {
+      const { data } = await axios.get(tokenURI);
+
+      fs.writeFileSync(filePath, JSON.stringify(data));
+
+      dataReturned = data;
+    }
+  }
 
   if (dataReturned?.image.startsWith("ipfs://")) {
-    dataReturned.image = dataReturned.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+    dataReturned.image = dataReturned.image.replace(
+      "ipfs://",
+      "https://ipfs.io/ipfs/"
+    );
   } else {
-    console.log("unknown image metadata", tokenURI)
+    console.log("unknown image metadata", tokenURI);
   }
 
   return dataReturned;
@@ -237,84 +387,125 @@ const getUnfetchedNfts = () => {
   LEFT JOIN "public"."metadata" m ON t."id" = m."token_id"
   WHERE m."token_id" IS NULL
   LIMIT 10;
-  `
+  `;
 
-  return db.any(sql)
-    .then(async rawSqlData => {
+  return db
+    .any(sql)
+    .then(async (rawSqlData) => {
       if (rawSqlData.length == 0) {
-        console.log("NFT metadata synced")
-        return false
+        console.log("NFT metadata synced");
+        return false;
       }
 
-      const metadata = await Promise.all(rawSqlData.map(dataItem => {
-        const { tokenId: token_id, collection } = dataItem
-        return fetchNFTMetadata(collection, token_id).then(metadata => {
-          return {
-            ...metadata,
-            token_id: token_id,
-            collection: collection
-          }
+      //0x0872ec4426103482a50f26Ffc32aCEfcec61b3c9
+      const metadata = await Promise.all(
+        rawSqlData.map((dataItem) => {
+          const { tokenId: token_id, collection } = dataItem;
+          // was originally the normal nft fetch
+
+          // return fetchERC1155NFTMetadata(collection, token_id).then(
+          return fetchERC1155NFTMetadata(
+            "0x0872ec4426103482a50f26Ffc32aCEfcec61b3c9",
+            token_id
+          ).then((metadata) => {
+            return {
+              ...metadata,
+              token_id: token_id,
+              collection: collection,
+            };
+          });
         })
-      }))
+      );
 
-
-      const metadataToSave = metadata.map(({ name, description, image, collection, token_id }) => {
-        return {
-          id: `met${collection}-${token_id}`, token_id: `${collection}-${token_id}`, name, description, image, event_chain_id: 1, event_id: 1
+      const metadataToSave = metadata.map(
+        ({ name, description, image, collection, token_id }) => {
+          return {
+            id: `met${collection}-${token_id}`,
+            token_id: `${collection}-${token_id}`,
+            name,
+            description,
+            image,
+            event_chain_id: 1,
+            event_id: 1,
+          };
         }
-      })
+      );
 
       const metadata_columns = [
-        'id',
-        'token_id',
-        'name',
-        'description',
-        'image',
-        'event_chain_id',
-        'event_id'
+        "id",
+        "token_id",
+        "name",
+        "description",
+        "image",
+        "event_chain_id",
+        "event_id",
       ];
 
-      const metadata_tableName = new pgp.helpers.TableName({ table: 'metadata', schema: 'public' });
+      const metadata_tableName = new pgp.helpers.TableName({
+        table: "metadata",
+        schema: "public",
+      });
 
-      const metadata_query = pgp.helpers.insert(metadataToSave, metadata_columns, metadata_tableName);
+      const metadata_query = pgp.helpers.insert(
+        metadataToSave,
+        metadata_columns,
+        metadata_tableName
+      );
 
-      let metadata_promise = db.none(metadata_query)
+      let metadata_promise = db
+        .none(metadata_query)
         .then(() => {
           console.log("Metadata inserted successfully");
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("ERROR: (write metadata)", error);
         });
 
-      const attributesToSave = metadata.map((metadataItem) => {
-        // console.log("metadataItem", metadataItem)
-        const { collection, token_id, attributes } = metadataItem
-        return attributes.map((attribute: any) => {
-          const { trait_type, value } = attribute
-          return {
-            id: `atr${collection}-${token_id}${trait_type.replace(/ /g, "_")/* can't have spaces? */}`, metadata_id: `met${collection}-${token_id}`, trait_type, value, event_chain_id: 1, event_id: 1
-          }
+      const attributesToSave = metadata
+        .map((metadataItem) => {
+          // console.log("metadataItem", metadataItem)
+          const { collection, token_id, attributes } = metadataItem;
+          return attributes.map((attribute: any) => {
+            const { trait_type, value } = attribute;
+            return {
+              id: `atr${collection}-${token_id}${
+                trait_type.replace(/ /g, "_") /* can't have spaces? */
+              }`,
+              metadata_id: `met${collection}-${token_id}`,
+              trait_type,
+              value,
+              event_chain_id: 1,
+              event_id: 1,
+            };
+          });
         })
-      }).flat()
+        .flat();
       if (attributesToSave.length > 0) {
         const attributes_columns = [
-          'id',
-          'metadata_id',
-          'trait_type',
-          'value',
-          'event_chain_id',
-          'event_id'
+          "id",
+          "metadata_id",
+          "trait_type",
+          "value",
+          "event_chain_id",
+          "event_id",
         ];
 
-        const attributes_tableName = new pgp.helpers.TableName({ table: 'attribute', schema: 'public' });
+        const attributes_tableName = new pgp.helpers.TableName({
+          table: "attribute",
+          schema: "public",
+        });
 
-        const attributes_query = pgp.helpers.insert(attributesToSave, attributes_columns, attributes_tableName);
+        const attributes_query = pgp.helpers.insert(
+          attributesToSave,
+          attributes_columns,
+          attributes_tableName
+        );
 
         db.none(attributes_query)
           .then(() => {
             console.log("Attributes inserted successfully");
           })
-          .catch(error => {
+          .catch((error) => {
             // console.log("data for error", metadata[0].token_id)
             // console.log("data for error", attributesToSave)
             console.error("ERROR (writing attribute):", error);
@@ -323,13 +514,13 @@ const getUnfetchedNfts = () => {
 
       await metadata_promise; // So that the metadata has finished writing before moving on.
 
-      return rawSqlData.length > 0
+      return rawSqlData.length > 0;
     })
-    .catch(error => {
-      console.log('ERROR <null item query>:', error); // print the error
-      return false
+    .catch((error) => {
+      console.log("ERROR <null item query>:", error); // print the error
+      return false;
     });
-}
+};
 
 async function continuouslyFetchNFTs() {
   while (true) {
@@ -337,7 +528,7 @@ async function continuouslyFetchNFTs() {
 
     if (!result) {
       // If the function returns false, wait for 5 seconds before running it again
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 }
@@ -360,10 +551,9 @@ async function main() {
   // console.log("Retrieved file contents:", chunks.toString());
   // Call the function
   continuouslyFetchNFTs()
-    .then(() => console.log('Finished fetching NFTs.'))
-    .catch((error) => console.error('An error occurred:', error));
-  runCheckCollections()
+    .then(() => console.log("Finished fetching NFTs."))
+    .catch((error) => console.error("An error occurred:", error));
+  runCheckCollections();
 }
 
 main();
-
